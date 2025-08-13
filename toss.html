@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Toss App</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind config to use Inter font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* Custom animation for the coin flip */
+        .coin {
+            transition: transform 0.5s ease-out;
+            transform-style: preserve-3d;
+            animation: none; /* Initially no animation */
+        }
+        
+        /* The flipping animation */
+        @keyframes flip-animation {
+            0% { transform: rotateY(0); }
+            100% { transform: rotateY(1800deg); }
+        }
+
+        /* Class to apply the animation */
+        .flipping {
+            animation: flip-animation 2s forwards ease-in-out;
+        }
+
+        .heads-text, .tails-text {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotateY(0deg);
+        }
+
+        /* Heads is on the front, tails is on the back */
+        .tails-text {
+            transform: translate(-50%, -50%) rotateY(180deg);
+        }
+
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <!-- Main container -->
+    <div class="w-full max-w-lg p-6 bg-white rounded-3xl shadow-xl border border-gray-200 text-center">
+        <h1 class="text-4xl font-bold text-gray-800 mb-6">Coin Toss</h1>
+        <p class="text-lg text-gray-600 mb-8">Click the button to flip the coin and get a random result!</p>
+
+        <!-- Coin display area -->
+        <div class="flex justify-center items-center h-48 mb-8 relative">
+            <div id="coin" class="coin relative w-32 h-32 rounded-full border-8 border-gray-300 bg-yellow-400 shadow-lg cursor-pointer">
+                <!-- SVG for heads side -->
+                <svg id="heads-svg" class="heads-text absolute w-full h-full text-white" viewBox="0 0 100 100">
+                    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="font-bold text-5xl">H</text>
+                </svg>
+                <!-- SVG for tails side -->
+                <svg id="tails-svg" class="tails-text absolute w-full h-full text-white" viewBox="0 0 100 100">
+                    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="font-bold text-5xl">T</text>
+                </svg>
+            </div>
+        </div>
+        
+        <!-- Result and control area -->
+        <div id="result-display" class="text-2xl font-bold text-gray-800 mb-6 min-h-[2rem]">Flip the coin!</div>
+        <button id="flip-btn" class="w-full py-4 px-6 bg-gray-800 text-white font-semibold rounded-xl shadow-md hover:bg-gray-700 transition-colors duration-200">
+            Flip Coin
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const coinElement = document.getElementById('coin');
+            const flipBtn = document.getElementById('flip-btn');
+            const resultDisplay = document.getElementById('result-display');
+            const headsSvg = document.getElementById('heads-svg');
+            const tailsSvg = document.getElementById('tails-svg');
+
+            // Function to handle the coin toss logic and animation
+            const flipCoin = () => {
+                // Disable the button while flipping
+                flipBtn.disabled = true;
+                flipBtn.textContent = 'Flipping...';
+                resultDisplay.textContent = '...';
+
+                // Reset animation state
+                coinElement.classList.remove('flipping');
+                coinElement.style.animation = 'none';
+                void coinElement.offsetWidth; // Trigger reflow to restart animation
+
+                // Randomly decide heads (0) or tails (1)
+                const isHeads = Math.floor(Math.random() * 2) === 0;
+
+                // Create a dynamic keyframe animation to land on the correct side
+                const styleSheet = document.styleSheets[0];
+                let keyframes = `@keyframes flip-to-heads { 0% { transform: rotateY(0); } 100% { transform: rotateY(1800deg); } }`;
+                if (!isHeads) {
+                    keyframes = `@keyframes flip-to-tails { 0% { transform: rotateY(0); } 100% { transform: rotateY(1980deg); } }`; // 1800 + 180 degrees
+                }
+                
+                // Remove previous custom animation rules if they exist
+                for (let i = styleSheet.cssRules.length - 1; i >= 0; i--) {
+                    if (styleSheet.cssRules[i].name === 'flip-to-heads' || styleSheet.cssRules[i].name === 'flip-to-tails') {
+                        styleSheet.deleteRule(i);
+                    }
+                }
+                styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
+
+                // Start the animation
+                coinElement.style.animation = `${isHeads ? 'flip-to-heads' : 'flip-to-tails'} 2s forwards cubic-bezier(0.4, 0.2, 0.2, 0.8)`;
+                
+                // Use a timeout to display the result after the animation
+                setTimeout(() => {
+                    const resultText = isHeads ? 'Heads!' : 'Tails!';
+                    resultDisplay.textContent = resultText;
+                    flipBtn.disabled = false;
+                    flipBtn.textContent = 'Flip Coin';
+                }, 2000); // Match this with the animation duration
+            };
+
+            // Event listener for the flip button
+            flipBtn.addEventListener('click', flipCoin);
+        });
+    </script>
+</body>
+</html>

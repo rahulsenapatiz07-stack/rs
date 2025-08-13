@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>12-Hour Alarm Clock App</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind config to use Inter font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .time-display {
+            font-size: 3rem; /* Adjusted for mobile */
+            font-weight: 700;
+            color: #1f2937;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        @media (min-width: 640px) {
+            .time-display {
+                font-size: 4rem; /* Larger on desktop */
+            }
+        }
+        /* Custom scrollbar for alarm list */
+        .alarm-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .alarm-list-container::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        .alarm-list-container::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <!-- Watermark -->
+    <div class="absolute top-4 right-4 text-gray-400 text-sm font-semibold">created by @rahulsenapati</div>
+    <!-- Main container for the app -->
+    <div class="w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-gray-200">
+        <div class="text-center">
+            <h1 class="text-3xl font-bold mb-4 text-gray-800">Alarm Clock</h1>
+            <!-- Live time display -->
+            <div id="currentTime" class="time-display mb-6">00:00:00 AM</div>
+        </div>
+        <!-- Form to set a new alarm -->
+        <form id="alarmForm" class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 p-4 bg-gray-100 rounded-xl">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <!-- Hours dropdown -->
+                <select id="alarmHours" class="form-select block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </select>
+                <!-- Minutes dropdown -->
+                <span class="text-gray-500">:</span>
+                <select id="alarmMinutes" class="form-select block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </select>
+                <!-- AM/PM dropdown -->
+                <select id="alarmAmPm" class="form-select block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                </select>
+            </div>
+            <!-- Set alarm button -->
+            <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white font-semibold rounded-md shadow-md hover:bg-blue-600 transition-colors duration-200">
+                Set Alarm
+            </button>
+        </form>
+        <!-- Alarms list -->
+        <div class="mb-4">
+            <h2 class="text-xl font-bold text-gray-800 mb-2">My Alarms</h2>
+            <div id="alarmsList" class="alarm-list-container space-y-3 overflow-y-auto max-h-48">
+                <!-- Alarm items will be dynamically inserted here -->
+            </div>
+        </div>
+        <!-- Message box for notifications -->
+        <div id="messageBox" class="mt-4 p-3 bg-green-100 text-green-700 rounded-md text-center hidden">
+            Alarm set!
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM elements
+            const currentTimeDisplay = document.getElementById('currentTime');
+            const alarmHoursSelect = document.getElementById('alarmHours');
+            const alarmMinutesSelect = document.getElementById('alarmMinutes');
+            const alarmAmPmSelect = document.getElementById('alarmAmPm');
+            const alarmForm = document.getElementById('alarmForm');
+            const alarmsList = document.getElementById('alarmsList');
+            const messageBox = document.getElementById('messageBox');
+            let alarms = [];
+            let sound = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+            sound.loop = true;
+
+            // Helper function to show messages
+            const showMessage = (msg) => {
+                messageBox.textContent = msg;
+                messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+                if (msg.includes('already set')) {
+                    messageBox.classList.add('bg-red-100', 'text-red-700');
+                } else {
+                    messageBox.classList.add('bg-green-100', 'text-green-700');
+                }
+                messageBox.classList.remove('hidden');
+                setTimeout(() => {
+                    messageBox.classList.add('hidden');
+                }, 3000);
+            };
+
+            // Function to update the digital clock
+            const updateTime = () => {
+                const now = new Date();
+                let hours = now.getHours();
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+                let ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // The hour '0' should be '12'
+                const formattedHours = String(hours).padStart(2, '0');
+                const formattedMinutes = String(minutes).padStart(2, '0');
+                const formattedSeconds = String(seconds).padStart(2, '0');
+                currentTimeDisplay.textContent = `${formattedHours}:${formattedMinutes}:${formattedSeconds} ${ampm}`;
+
+                // Check if any alarms should be ringing
+                alarms.forEach((alarm, index) => {
+                    const alarmTime = new Date(`1970/01/01 ${alarm.time}`);
+                    const currentTime = new Date(`1970/01/01 ${formattedHours}:${formattedMinutes} ${ampm}`);
+                    
+                    if (currentTime.getHours() === alarmTime.getHours() && currentTime.getMinutes() === alarmTime.getMinutes() && seconds === 0 && !alarm.isRinging) {
+                        alarm.isRinging = true;
+                        // Play the alarm sound
+                        sound.play();
+                        // Show a ringing message
+                        const ringingMessage = `Alarm is ringing for ${alarm.time}!`;
+                        showMessage(ringingMessage);
+                        // Highlight the ringing alarm in the list
+                        const alarmItem = alarmsList.querySelector(`[data-time="${alarm.time}"]`);
+                        if (alarmItem) {
+                            alarmItem.classList.add('bg-red-200', 'animate-pulse');
+                        }
+                    }
+                });
+            };
+
+            // Function to populate the hours and minutes dropdowns
+            const populateSelects = () => {
+                for (let i = 1; i <= 12; i++) {
+                    const option = document.createElement('option');
+                    option.value = String(i).padStart(2, '0');
+                    option.textContent = String(i).padStart(2, '0');
+                    alarmHoursSelect.appendChild(option);
+                }
+                for (let i = 0; i < 60; i++) {
+                    const option = document.createElement('option');
+                    option.value = String(i).padStart(2, '0');
+                    option.textContent = String(i).padStart(2, '0');
+                    alarmMinutesSelect.appendChild(option);
+                }
+            };
+
+            // Function to render the list of alarms
+            const renderAlarms = () => {
+                alarmsList.innerHTML = '';
+                if (alarms.length === 0) {
+                    alarmsList.innerHTML = '<p class="text-center text-gray-500">No alarms set.</p>';
+                    return;
+                }
+                alarms.forEach((alarm, index) => {
+                    const alarmItem = document.createElement('div');
+                    alarmItem.dataset.time = alarm.time;
+                    alarmItem.className = `flex items-center justify-between p-3 rounded-md bg-gray-50 border border-gray-200 ${alarm.isRinging ? 'bg-red-200 animate-pulse' : ''}`;
+                    alarmItem.innerHTML = `
+                        <span class="text-gray-800 font-semibold">${alarm.time}</span>
+                        <button class="remove-alarm-btn text-red-500 hover:text-red-700 transition-colors duration-200" data-index="${index}">
+                            Remove
+                        </button>
+                    `;
+                    alarmsList.appendChild(alarmItem);
+                });
+            };
+
+            // Event listener for setting a new alarm
+            alarmForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const hours = alarmHoursSelect.value;
+                const minutes = alarmMinutesSelect.value;
+                const ampm = alarmAmPmSelect.value;
+                const newAlarmTime = `${hours}:${minutes} ${ampm}`;
+
+                // Check if the alarm already exists
+                if (alarms.some(alarm => alarm.time === newAlarmTime)) {
+                    showMessage("This alarm is already set!");
+                    return;
+                }
+
+                alarms.push({ time: newAlarmTime, isRinging: false });
+                alarms.sort((a, b) => {
+                    // Custom sort function for 12-hour time with AM/PM
+                    const timeA = new Date(`1970/01/01 ${a.time}`);
+                    const timeB = new Date(`1970/01/01 ${b.time}`);
+                    return timeA - timeB;
+                });
+                renderAlarms();
+                showMessage(`Alarm set for ${newAlarmTime}!`);
+            });
+
+            // Event listener for removing an alarm
+            alarmsList.addEventListener('click', (e) => {
+                if (e.target.closest('.remove-alarm-btn')) {
+                    const index = e.target.closest('.remove-alarm-btn').dataset.index;
+                    alarms.splice(index, 1);
+                    renderAlarms();
+                }
+            });
+
+            // Initial calls
+            populateSelects();
+            renderAlarms();
+            setInterval(updateTime, 1000);
+            updateTime(); // Call immediately to avoid a 1-second delay
+        });
+    </script>
+</body>
+</html>
