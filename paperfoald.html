@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Folding Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 800px;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: #d1d5db;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        header {
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-display {
+            margin-bottom: 2rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        #folds {
+            font-size: 3rem;
+            color: #3b82f6;
+        }
+
+        #thickness {
+            font-size: 2rem;
+            color: #10b981;
+            margin-top: 0.5rem;
+        }
+
+        #reach-text {
+            font-size: 1.5rem;
+            color: #4b5563;
+            margin-top: 1rem;
+        }
+
+        .fold-btn {
+            padding: 1rem 2rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: white;
+            background-color: #3b82f6;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .fold-btn:hover {
+            background-color: #2563eb;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .fold-btn:disabled {
+            background-color: #d1d5db;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Watermark in the top right -->
+        <div class="watermark">created by @rahulsenapati</div>
+        
+        <header>
+            <h1>Paper Folding Game</h1>
+            <p>Your goal is to see how thick a single sheet of paper can become by folding it in half.</p>
+        </header>
+
+        <div class="status-display">
+            <p>Folds: <span id="folds">0</span></p>
+            <p>Current Thickness: <span id="thickness">0.1 mm</span></p>
+            <p id="reach-text"></p>
+        </div>
+
+        <button id="fold-btn" class="fold-btn">Fold Paper</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialThickness = 0.1; // in millimeters
+            let folds = 0;
+            let currentThickness = initialThickness;
+
+            const foldsDisplay = document.getElementById('folds');
+            const thicknessDisplay = document.getElementById('thickness');
+            const reachTextDisplay = document.getElementById('reach-text');
+            const foldBtn = document.getElementById('fold-btn');
+
+            // List of milestones for the paper's height
+            const milestones = [
+                { folds: 5, text: "reaches the thickness of a notebook" },
+                { folds: 7, text: "reaches the thickness of a deck of cards" },
+                { folds: 10, text: "reaches the width of a hand" },
+                { folds: 12, text: "reaches the length of a football" },
+                { folds: 14, text: "reaches the height of a house" },
+                { folds: 16, text: "reaches the length of a football field" },
+                { folds: 18, text: "reaches the height of the Empire State Building" },
+                { folds: 20, text: "reaches the height of Mount Everest" },
+                { folds: 23, text: "reaches the height of a commercial airplane" },
+                { folds: 26, text: "reaches the height of the ISS orbit" },
+                { folds: 29, text: "reaches the height of a low Earth orbit satellite" },
+                { folds: 31, text: "reaches the distance to the Moon" },
+                { folds: 42, text: "reaches the distance to the Sun" },
+                { folds: 48, text: "reaches the distance to the nearest star, Proxima Centauri" },
+            ];
+
+            // Function to format the thickness for display
+            const formatThickness = (thickness_mm) => {
+                if (thickness_mm < 1000) {
+                    return `${thickness_mm.toFixed(2)} mm`;
+                }
+                const thickness_m = thickness_mm / 1000;
+                if (thickness_m < 1000) {
+                    return `${thickness_m.toFixed(2)} m`;
+                }
+                const thickness_km = thickness_m / 1000;
+                if (thickness_km < 100000000) { // Up to 100 million km
+                    return `${thickness_km.toFixed(2)} km`;
+                }
+                const thickness_au = thickness_km / 149597871; // 1 AU = 149,597,871 km
+                return `${thickness_au.toFixed(2)} AU`;
+            };
+
+            // Function to get the milestone text
+            const getMilestoneText = (folds) => {
+                const milestone = milestones.find(m => m.folds === folds);
+                return milestone ? `It now ${milestone.text}!` : '';
+            };
+
+            // Function to update the game's UI
+            const updateUI = () => {
+                foldsDisplay.textContent = folds;
+                thicknessDisplay.textContent = formatThickness(currentThickness);
+                reachTextDisplay.textContent = getMilestoneText(folds);
+            };
+
+            // Event handler for the fold button
+            foldBtn.addEventListener('click', () => {
+                if (folds < 48) { // Prevent from going past the last milestone
+                    folds++;
+                    currentThickness = initialThickness * Math.pow(2, folds);
+                    updateUI();
+                } else {
+                    foldBtn.disabled = true;
+                    reachTextDisplay.textContent = "You've reached the final milestone!";
+                }
+            });
+
+            // Initial UI setup
+            updateUI();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicker Game: Spend My Money</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: #d1d5db;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        #moneyDisplay {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #059669; /* Green color for money */
+            margin-bottom: 2rem;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .item-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 1rem;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .item-card img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .item-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .item-price {
+            color: #4b5563;
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .buy-btn, .sell-btn {
+            padding: 0.5rem 1.25rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .buy-btn {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .buy-btn:hover:not(:disabled) {
+            background-color: #2563eb;
+        }
+
+        .sell-btn {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .sell-btn:hover:not(:disabled) {
+            background-color: #dc2626;
+        }
+
+        .buy-btn:disabled, .sell-btn:disabled {
+            background-color: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        .quantity {
+            font-size: 1.5rem;
+            font-weight: 700;
+            min-width: 30px;
+            text-align: center;
+            color: #1f2937;
+        }
+
+        /* Custom scrollbar for game window */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Watermark in the top right -->
+        <div class="watermark">created by @rahulsenapati</div>
+        
+        <header>
+            <h1>Spend All The Money!</h1>
+            <div id="moneyDisplay">$1,000,000,000</div>
+        </header>
+
+        <main id="itemsGrid" class="items-grid"></main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set the initial amount of money
+            let money = 1000000000;
+            const moneyDisplay = document.getElementById('moneyDisplay');
+            const itemsGrid = document.getElementById('itemsGrid');
+            
+            // Array of items with their names, prices, and generic image URLs
+            const items = [
+                // Cars
+                { name: "Ford Mustang GT", price: 40000, image: "https://placehold.co/150x150/fca5a5/ffffff?text=Mustang" },
+                { name: "Chevrolet Camaro", price: 38000, image: "https://placehold.co/150x150/f87171/ffffff?text=Camaro" },
+                { name: "Dodge Challenger", price: 35000, image: "https://placehold.co/150x150/ef4444/ffffff?text=Challenger" },
+                { name: "Tesla Model 3", price: 45000, image: "https://placehold.co/150x150/dc2626/ffffff?text=Model+3" },
+                { name: "BMW 3 Series", price: 50000, image: "https://placehold.co/150x150/b91c1c/ffffff?text=BMW+3" },
+                { name: "Mercedes C-Class", price: 52000, image: "https://placehold.co/150x150/991b1b/ffffff?text=Mercedes" },
+                { name: "Audi A4", price: 48000, image: "https://placehold.co/150x150/7f1d1d/ffffff?text=Audi+A4" },
+                { name: "Toyota Supra", price: 55000, image: "https://placehold.co/150x150/fecaca/ffffff?text=Supra" },
+                { name: "Nissan GT-R", price: 120000, image: "https://placehold.co/150x150/fee2e2/ffffff?text=GT-R" },
+                { name: "Porsche 911", price: 150000, image: "https://placehold.co/150x150/fef2f2/ffffff?text=Porsche+911" },
+                
+                // Food Stores
+                { name: "Taco Bell", price: 1200000, image: "https://placehold.co/150x150/a7f3d0/059669?text=Taco+Bell" },
+                { name: "Burger King", price: 1500000, image: "https://placehold.co/150x150/6ee7b7/059669?text=Burger+King" },
+                { name: "Subway", price: 1000000, image: "https://placehold.co/150x150/34d399/059669?text=Subway" },
+                { name: "Starbucks", price: 2500000, image: "https://placehold.co/150x150/10b981/059669?text=Starbucks" },
+                { name: "McDonald's", price: 3000000, image: "https://placehold.co/150x150/059669/ffffff?text=McDonald's" },
+                { name: "Chipotle", price: 1800000, image: "https://placehold.co/150x150/047857/ffffff?text=Chipotle" },
+                { name: "Domino's Pizza", price: 1100000, image: "https://placehold.co/150x150/065f46/ffffff?text=Domino's" },
+                { name: "Papa John's", price: 950000, image: "https://placehold.co/150x150/064e3b/ffffff?text=Papa+John's" },
+                { name: "Dunkin' Donuts", price: 1700000, image: "https://placehold.co/150x150/d1fae5/059669?text=Dunkin'" },
+                { name: "Wendy's", price: 2100000, image: "https://placehold.co/150x150/ccfbf1/059669?text=Wendy's" },
+                
+                // Tech Items
+                { name: "High-end PC", price: 5000, image: "https://placehold.co/150x150/93c5fd/ffffff?text=PC" },
+                { name: "VR Headset", price: 400, image: "https://placehold.co/150x150/60a5fa/ffffff?text=VR+Headset" },
+                { name: "4K Monitor", price: 300, image: "https://placehold.co/150x150/3b82f6/ffffff?text=Monitor" },
+                { name: "iPhone 15", price: 1000, image: "https://placehold.co/150x150/2563eb/ffffff?text=iPhone" },
+                { name: "MacBook Pro", price: 2500, image: "https://placehold.co/150x150/1d4ed8/ffffff?text=MacBook" },
+                { name: "Smart Watch", price: 250, image: "https://placehold.co/150x150/1e40af/ffffff?text=Smart+Watch" },
+                { name: "Drone", price: 800, image: "https://placehold.co/150x150/172554/ffffff?text=Drone" },
+                { name: "Gaming Console", price: 500, image: "https://placehold.co/150x150/bfdbfe/ffffff?text=Console" },
+                { name: "AirPods Max", price: 550, image: "https://placehold.co/150x150/dbeafe/ffffff?text=Headphones" },
+                { name: "Smart TV 85-inch", price: 1800, image: "https://placehold.co/150x150/eff6ff/ffffff?text=Smart+TV" },
+            ];
+
+            // An object to keep track of the quantity of each item
+            const quantities = {};
+            items.forEach(item => quantities[item.name] = 0);
+
+            // Function to format numbers as currency
+            const formatCurrency = (num) => {
+                return num.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0
+                });
+            };
+
+            // Function to update the main money display and all buttons
+            const updateUI = () => {
+                moneyDisplay.textContent = formatCurrency(money);
+
+                // Iterate over all items in the grid
+                items.forEach(item => {
+                    const buyBtn = document.getElementById(`buy-${item.name.replace(/\s/g, '-')}`);
+                    const sellBtn = document.getElementById(`sell-${item.name.replace(/\s/g, '-')}`);
+                    const quantitySpan = document.getElementById(`quantity-${item.name.replace(/\s/g, '-')}`);
+                    
+                    if (buyBtn && sellBtn && quantitySpan) {
+                        // Update the quantity display
+                        quantitySpan.textContent = quantities[item.name];
+
+                        // Disable buy button if not enough money
+                        buyBtn.disabled = money < item.price;
+
+                        // Disable sell button if quantity is zero
+                        sellBtn.disabled = quantities[item.name] === 0;
+                    }
+                });
+            };
+
+            // Function to handle buying an item
+            const buyItem = (itemName) => {
+                const item = items.find(i => i.name === itemName);
+                if (item && money >= item.price) {
+                    money -= item.price;
+                    quantities[itemName]++;
+                    updateUI();
+                }
+            };
+
+            // Function to handle selling an item
+            const sellItem = (itemName) => {
+                const item = items.find(i => i.name === itemName);
+                if (item && quantities[itemName] > 0) {
+                    money += item.price;
+                    quantities[itemName]--;
+                    updateUI();
+                }
+            };
+
+            // Function to render all the items on the page
+            const renderItems = () => {
+                itemsGrid.innerHTML = ''; // Clear the grid first
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.innerHTML = `
+                        <img src="${item.image}" alt="${item.name}">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-price">${formatCurrency(item.price)}</div>
+                        <div class="controls">
+                            <button id="sell-${item.name.replace(/\s/g, '-')}" class="sell-btn">Sell</button>
+                            <span id="quantity-${item.name.replace(/\s/g, '-')}" class="quantity">0</span>
+                            <button id="buy-${item.name.replace(/\s/g, '-')}" class="buy-btn">Buy</button>
+                        </div>
+                    `;
+                    itemsGrid.appendChild(card);
+                });
+
+                // Attach event listeners to the buttons after they are created
+                itemsGrid.addEventListener('click', (event) => {
+                    const button = event.target.closest('button');
+                    if (!button) return;
+
+                    const idParts = button.id.split('-');
+                    const action = idParts[0];
+                    const itemName = idParts.slice(1).join(' ');
+
+                    if (action === 'buy') {
+                        buyItem(itemName);
+                    } else if (action === 'sell') {
+                        sellItem(itemName);
+                    }
+                });
+
+                updateUI(); // Initial UI update
+            };
+
+            renderItems();
+        });
+    </script>
+</body>
+</html>

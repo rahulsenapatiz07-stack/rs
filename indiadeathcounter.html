@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India Death Tracker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            text-align: center;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: #d1d5db;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        header {
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        
+        #page-timer {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+        
+        #total-deaths-display {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #ef4444; /* Red color for main counter */
+            margin-bottom: 1rem;
+            line-height: 1;
+        }
+
+        p.intro {
+            font-size: 1.125rem;
+            color: #4b5563;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #4b5563;
+        }
+
+        .death-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .death-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .cause-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .death-count {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #ef4444; /* Red color for death counter */
+            line-height: 1;
+        }
+        
+        .data-source {
+            margin-top: 3rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Watermark in the top right -->
+        <div class="watermark">created by @rahulsenapati</div>
+        
+        <header>
+            <h1>Total Deaths in India</h1>
+            <div id="total-deaths-display">0</div>
+            <p id="page-timer">Page opened for: 00:00:00</p>
+        </header>
+
+        <p class="intro">Deaths since this page was loaded, based on estimated annual rates, broken down by cause.</p>
+
+        <main id="death-grid" class="death-grid"></main>
+
+        <p class="data-source">
+            *Data is for illustrative purposes only, based on estimated annual death rates from sources like the WHO and national health surveys.
+        </p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Estimated India Population and death rates (per 1,000 people per year)
+            const indiaPopulation = 1428627663;
+            const totalSecondsInYear = 31536000;
+            
+            // Death categories and their estimated annual death rates
+            const deathCauses = [
+                { name: "Accidents", ratePer1000: 0.61 },
+                { name: "Pollution", ratePer1000: 1.53 },
+                { name: "Heart Disease", ratePer1000: 1.70 },
+                { name: "Stroke", ratePer1000: 1.30 },
+                { name: "Cancer", ratePer1000: 0.85 },
+                { name: "Respiratory Diseases", ratePer1000: 0.95 },
+                { name: "Infectious Diseases", ratePer1000: 1.12 },
+                { name: "Tuberculosis", ratePer1000: 0.30 }, // Added cause
+                { name: "Diabetes", ratePer1000: 0.40 },     // Added cause
+            ];
+
+            const deathGrid = document.getElementById('death-grid');
+            const totalDeathsDisplay = document.getElementById('total-deaths-display');
+            const pageTimerDisplay = document.getElementById('page-timer');
+            const startTime = Date.now();
+
+            let totalDeaths = 0;
+            let totalDeathsPerSecond = 0;
+            
+            // Function to format numbers with commas
+            const formatNumber = (num) => {
+                return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            };
+
+            // Dynamically create a card and counter for each death cause
+            deathCauses.forEach(cause => {
+                const card = document.createElement('div');
+                card.className = 'death-card';
+                card.innerHTML = `
+                    <div class="cause-name">${cause.name}</div>
+                    <div class="death-count" id="${cause.name.replace(/\s/g, '-')}-count">0</div>
+                `;
+                deathGrid.appendChild(card);
+
+                // Calculate deaths per second for the cause
+                const deathsPerSecond = (cause.ratePer1000 / 1000) * indiaPopulation / totalSecondsInYear;
+                totalDeathsPerSecond += deathsPerSecond;
+
+                let deathCount = 0;
+                let lastUpdateTime = Date.now();
+                const deathCountDisplay = document.getElementById(`${cause.name.replace(/\s/g, '-')}-count`);
+
+                // Create a continuous update loop for each counter
+                setInterval(() => {
+                    const now = Date.now();
+                    const deltaTime = (now - lastUpdateTime) / 1000; // time in seconds
+                    lastUpdateTime = now;
+
+                    deathCount += deathsPerSecond * deltaTime;
+                    deathCountDisplay.textContent = formatNumber(Math.floor(deathCount));
+                }, 50); // Update every 50ms for smooth animation
+            });
+
+            // Total deaths counter
+            let totalDeathCount = 0;
+            let lastTotalUpdateTime = Date.now();
+            setInterval(() => {
+                const now = Date.now();
+                const deltaTime = (now - lastTotalUpdateTime) / 1000;
+                lastTotalUpdateTime = now;
+
+                totalDeathCount += totalDeathsPerSecond * deltaTime;
+                totalDeathsDisplay.textContent = formatNumber(Math.floor(totalDeathCount));
+            }, 50);
+
+            // Page opened timer
+            setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                const hours = Math.floor(elapsedSeconds / 3600);
+                const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+                const seconds = elapsedSeconds % 60;
+                
+                const formattedHours = hours.toString().padStart(2, '0');
+                const formattedMinutes = minutes.toString().padStart(2, '0');
+                const formattedSeconds = seconds.toString().padStart(2, '0');
+
+                pageTimerDisplay.textContent = `Page opened for: ${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
