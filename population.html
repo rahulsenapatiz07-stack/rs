@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Population Tracker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            text-align: center;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: #d1d5db;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        header {
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        #world-population-display {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #ef4444; /* Red color for main counter */
+            margin-bottom: 2rem;
+            line-height: 1;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #4b5563;
+        }
+
+        .country-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .country-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .country-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .born-count {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #10b981; /* Green color for child born counter */
+            line-height: 1;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Watermark in the top right -->
+        <div class="watermark">created by @rahulsenapati</div>
+        
+        <header>
+            <h1>World Population</h1>
+            <div id="world-population-display">8,100,000,000</div>
+        </header>
+
+        <h2>Children Born Since Page Started</h2>
+        <main id="country-counters-grid" class="country-grid"></main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Main world population data
+            let worldPopulation = 8100000000;
+            const worldPopulationDisplay = document.getElementById('world-population-display');
+            const worldBirthsPerSecond = 4.3; // Approximate average world birth rate
+            const worldIncrementInterval = 100; // ms
+            const worldIncrementAmount = worldBirthsPerSecond * (worldIncrementInterval / 1000);
+
+            // Country data with birth rates (births per 1000 people per year)
+            const countries = [
+                { name: "India", population: 1428627663, birthRate: 18.0 },
+                { name: "China", population: 1425671352, birthRate: 7.5 },
+                { name: "United States", population: 339996563, birthRate: 11.0 },
+                { name: "Indonesia", population: 277534122, birthRate: 17.0 },
+                { name: "Pakistan", population: 240485658, birthRate: 27.0 },
+                { name: "Brazil", population: 216422446, birthRate: 13.0 },
+                { name: "Germany", population: 83294633, birthRate: 9.5 },
+                { name: "Canada", population: 38781291, birthRate: 10.5 },
+            ];
+
+            const countriesGrid = document.getElementById('country-counters-grid');
+
+            // Function to format numbers with commas
+            const formatNumber = (num) => {
+                return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            };
+
+            // World Population Counter
+            setInterval(() => {
+                worldPopulation += worldIncrementAmount;
+                worldPopulationDisplay.textContent = formatNumber(Math.floor(worldPopulation));
+            }, worldIncrementInterval);
+
+
+            // Dynamically create country counter cards
+            countries.forEach(country => {
+                const card = document.createElement('div');
+                card.className = 'country-card';
+                card.innerHTML = `
+                    <div class="country-name">${country.name}</div>
+                    <div class="born-count" id="${country.name.replace(/\s/g, '-')}-count">0</div>
+                `;
+                countriesGrid.appendChild(card);
+
+                // Calculate births per second for each country
+                const totalSecondsInYear = 31536000;
+                const birthsPerSecond = (country.birthRate / 1000) * country.population / totalSecondsInYear;
+
+                let bornCount = 0;
+                let lastUpdateTime = Date.now();
+                const countryCountDisplay = document.getElementById(`${country.name.replace(/\s/g, '-')}-count`);
+
+                // Create a continuous update loop for each country counter
+                setInterval(() => {
+                    const now = Date.now();
+                    const deltaTime = (now - lastUpdateTime) / 1000; // time in seconds
+                    lastUpdateTime = now;
+
+                    bornCount += birthsPerSecond * deltaTime;
+                    countryCountDisplay.textContent = formatNumber(Math.floor(bornCount));
+                }, 50); // Update every 50ms for smooth animation
+            });
+
+            // Initial display setup
+            worldPopulationDisplay.textContent = formatNumber(worldPopulation);
+        });
+    </script>
+</body>
+</html>
